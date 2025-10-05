@@ -1,0 +1,97 @@
+{
+  "name": "Fetch European Football Scores",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": "*",
+              "minute": "*/15"
+            }
+          ]
+        }
+      },
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.football-data.org/v4/matches",
+        "options": {},
+        "method": "GET",
+        "headerParameters": [
+          {
+            "name": "X-Auth-Token",
+            "value": "88446f89c6854fd6bc42cd0db4fdf74d"
+          }
+        ],
+        "responseFormat": "json",
+        "jsonParameters": true
+      },
+      "name": "Get Football Matches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const matches = items[0].json.matches.map(m => ({\n  competition: m.competition.name,\n  homeTeam: m.homeTeam.name,\n  awayTeam: m.awayTeam.name,\n  score: `${m.score.fullTime.home ?? 0} - ${m.score.fullTime.away ?? 0}`,\n  status: m.status,\n  utcDate: new Date(m.utcDate).toLocaleString()\n}));\nreturn [{ json: { matches } }];"
+      },
+      "name": "Format Matches",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://your-json-endpoint.com/matches.json",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{ $json }}"
+      },
+      "name": "Post to JSON Endpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Football Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Football Matches": {
+      "main": [
+        [
+          {
+            "node": "Format Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Matches": {
+      "main": [
+        [
+          {
+            "node": "Post to JSON Endpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
